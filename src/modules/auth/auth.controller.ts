@@ -5,6 +5,7 @@ import { AuthStatusMessages } from './dto/auth.constants';
 import { AuthFormDto } from './dto/users.dto';
 import { LoginFormDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh.dto';
+import { makeError } from 'src/common/utils/make-error';
 
 @ApiTags('Auth Form')
 @Controller('auth')
@@ -114,18 +115,19 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Refresh Token' })
   //#region
-  @ApiOkResponse({
-    status: HttpStatus.OK,
-    description: 'Access token successfully refreshed.',
-  })
+  @ApiOkResponse({ description: 'Access token and refresh token successfully refreshed.' })
+  @ApiBadRequestResponse({ description: 'Invalid or expired refresh token.' })
   @Post('/refresh-token')
   async refreshToken(@Body() tokenDto: RefreshTokenDto) {
     try {
-      const newAccessToken = await this.authService.refreshToken(tokenDto);
+      const newToken = await this.authService.refreshToken(tokenDto);
 
-      return { access_token: newAccessToken };
+      return {
+        access_token: newToken.accessToken,
+        refresh_token: newToken.refreshToken,
+      };
     } catch (error) {
-      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+      throw makeError(401, { message: 'Invalid token' });
     }
   }
   //#endregion

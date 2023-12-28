@@ -8,6 +8,7 @@ import { MailerService } from 'src/common/modules/mailer/mailer.service';
 import { APP_CONFIG_KEY, AppConfigType } from 'src/common/config/app.config';
 import { PaymentFormDto } from './payment-form.dto';
 import bcrypt from 'bcryptjs';
+import { makeError } from 'src/common/utils/make-error';
 
 @Injectable()
 export class PaymentFormService {
@@ -87,7 +88,7 @@ export class PaymentFormService {
         message: 'SUCCESS',
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST, { cause: new Error(error) });
+      throw makeError(400, { message: error.message });
     }
   }
 }

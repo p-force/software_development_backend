@@ -12,9 +12,9 @@ export class ContactFormDto {
   @IsEmail({}, { message: 'Invalid email.' })
   readonly email: string;
 
-  @ApiProperty({ description: 'Номер телефона', example: '+7 0123456789' })
+  @ApiProperty({ description: 'Номер телефона' })
   @IsNotEmpty({ message: "The 'Phone Number' field must not be empty." })
-  @IsPhoneNumber('RU', { message: 'The phone number must be valid.' })
+  @IsPhoneNumber(undefined, { message: 'The phone number must be valid.' })
   @MaxLength(50, { message: "The 'Phone Number' field must not exceed 50 characters." })
   readonly phone: string;
 

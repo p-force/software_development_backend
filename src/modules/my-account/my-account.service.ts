@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../auth/entities/user.entity';
 import { Repository } from 'typeorm';
 import { PaymentForm } from '../payment-form/payment-form.entity';
+import { makeError } from 'src/common/utils/make-error';
 
 @Injectable()
 export class MyAccountService {
@@ -20,7 +21,7 @@ export class MyAccountService {
       const response = orders.map((el) => el.amount);
       return { orders: count, amount: response };
     } catch (error) {
-      throw error;
+      throw makeError(500, { message: 'Something went wrong' });
     }
   }
 
@@ -37,7 +38,7 @@ export class MyAccountService {
       await this.authRepository.update({ email: user.email }, attributes);
       return HttpStatus.OK;
     } catch (err) {
-      throw new HttpException('Something went wrong', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw makeError(500, { message: 'Something went wrong' });
     }
   }
 
@@ -51,7 +52,7 @@ export class MyAccountService {
       const response = orders.map((el) => ({ id: el.id, amount: el.amount }));
       return response;
     } catch (error) {
-      throw error;
+      throw makeError(500, { message: 'Something went wrong' });
     }
   }
 }

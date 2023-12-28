@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { AuthStatusMessages } from './dto/auth.constants';
 import bcrypt from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +14,7 @@ import { LoginFormDto } from './dto/login.dto';
 import { Token } from './dto/token.dto';
 import { SecurityConfig } from './dto/config';
 import { RefreshTokenDto } from './dto/refresh.dto';
+import { makeError } from 'src/common/utils/make-error';
 
 @Injectable()
 export class AuthService {
@@ -28,38 +29,28 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
   async registration(authDto: AuthFormDto) {
-    if (
-      !authDto.email ||
-      !authDto.password ||
-      !authDto.name ||
-      !authDto.surname ||
-      !authDto.phone
-    ) {
-      throw new HttpException(AuthStatusMessages.INCOMPLETE_FIELD_ERROR, HttpStatus.BAD_REQUEST);
-    }
-
     const user = await this.authRepository.findOne({
       where: { email: authDto.email },
     });
     if (user) {
-      throw new HttpException(AuthStatusMessages.ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.ALREADY_EXISTS });
     }
 
     const hashedPassword = await bcrypt.hash(authDto.password, 10);
     await this.authRepository.save({ ...authDto, password: hashedPassword });
 
-    // await this.mailerService.sendMail({
-    //   subject: 'New registration form',
-    //   emails: [this.mailConfig.managerEmail],
-    //   htmlTemplate: 'new-reg',
-    //   templateVars: {
-    //     name: authDto.name,
-    //     surname: authDto.surname,
-    //     email: authDto.email,
-    //     phone: authDto.phone,
-    //     password: authDto.password,
-    //   },
-    // });
+    await this.mailerService.sendMail({
+      subject: 'New registration form',
+      emails: [this.mailConfig.managerEmail],
+      htmlTemplate: 'new-reg',
+      templateVars: {
+        name: authDto.name,
+        surname: authDto.surname,
+        email: authDto.email,
+        phone: authDto.phone,
+        password: authDto.password,
+      },
+    });
 
     return {
       statusCode: HttpStatus.CREATED,
@@ -72,12 +63,12 @@ export class AuthService {
       where: { email: loginDto.email },
     });
     if (!user) {
-      throw new HttpException(AuthStatusMessages.NOT_FOUND, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.NOT_FOUND });
     }
 
     const isMatch = await bcrypt.compare(loginDto.password, user.password);
     if (!isMatch) {
-      throw new HttpException(AuthStatusMessages.INVALID, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.INVALID });
     }
 
     const payload = { sub: user.id, email: user.email };
@@ -87,14 +78,14 @@ export class AuthService {
   }
   async recoveryPassword(data: string) {
     if (!data) {
-      throw new HttpException(AuthStatusMessages.INCOMPLETE_FIELD_ERROR, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.INCOMPLETE_FIELD_ERROR });
     }
 
     const user = await this.authRepository.findOne({
       where: { email: data },
     });
     if (!user) {
-      throw new HttpException(AuthStatusMessages.NOT_FOUND, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.NOT_FOUND });
     }
 
     const existCode = (
@@ -121,14 +112,14 @@ export class AuthService {
       expiresAt: expirationTime, // Устанавливаем время истечения
     });
 
-    // await this.mailerService.sendMail({
-    //   subject: 'Password recovery',
-    //   emails: [data],
-    //   htmlTemplate: 'password-recovery',
-    //   templateVars: {
-    //     code: recoveryCode,
-    //   },
-    // });
+    await this.mailerService.sendMail({
+      subject: 'Password recovery',
+      emails: [data],
+      htmlTemplate: 'password-recovery',
+      templateVars: {
+        code: recoveryCode,
+      },
+    });
 
     return {
       statusCode: HttpStatus.CREATED,
@@ -138,14 +129,14 @@ export class AuthService {
 
   async setPassword({ code, email, newPassword }) {
     if (!email || !code || !newPassword) {
-      throw new HttpException(AuthStatusMessages.INCOMPLETE_FIELD_ERROR, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.INCOMPLETE_FIELD_ERROR });
     }
 
     const user = await this.authRepository.findOne({
       where: { email },
     });
     if (!user) {
-      throw new HttpException(AuthStatusMessages.NOT_FOUND, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.NOT_FOUND });
     }
 
     const existCode = (
@@ -154,18 +145,18 @@ export class AuthService {
       })
     ).filter((item) => item.deletedAt === null)[0];
     if (!existCode) {
-      throw new HttpException(AuthStatusMessages.CODE_NOT_FOUND, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.CODE_NOT_FOUND });
     }
     if (existCode.code !== code) {
-      throw new HttpException(AuthStatusMessages.INCORRECT_CODE, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.INCORRECT_CODE });
     }
     if (existCode.expiresAt < new Date()) {
-      throw new HttpException(AuthStatusMessages.EXPIRED_CODE, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.EXPIRED_CODE });
     }
 
     const comparedPassword = await bcrypt.compare(newPassword, user.password);
     if (comparedPassword) {
-      throw new HttpException(AuthStatusMessages.ERROR_SET_PASSWORD, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: AuthStatusMessages.ERROR_SET_PASSWORD });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -209,6 +200,7 @@ export class AuthService {
   private generateAccessToken(payload: { userId: string }): string {
     return this.jwtService.sign(payload);
   }
+
   private generateRefreshToken(payload: { userId: string }): string {
     const securityConfig = this.configService.get<SecurityConfig>('security');
     return this.jwtService.sign(payload, {

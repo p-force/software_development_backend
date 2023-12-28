@@ -4,6 +4,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { ApiBadRequestResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { AccountStatusMessages } from './my-account.constants';
+import { ChangeAttributesDto } from './attributes.dto';
 
 @ApiTags('My Account')
 @Controller('my-account')
@@ -38,7 +39,7 @@ export class MyAccountController {
     description: `${AccountStatusMessages.ERROR}\n\nSomething went wrong`,
   })
   @Put('change-personal-details')
-  async changePersonalDetails(@CurrentUser() user, @Body() attributes) {
+  async changePersonalDetails(@CurrentUser() user, @Body() attributes: ChangeAttributesDto) {
     return this.accountService.changePersonalDetails(user, attributes);
   }
 

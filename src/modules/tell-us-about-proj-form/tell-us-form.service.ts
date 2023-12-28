@@ -9,6 +9,7 @@ import { join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { AppConfigType, APP_CONFIG_KEY } from 'src/common/config/app.config';
+import { makeError } from 'src/common/utils/make-error';
 
 @Injectable()
 export class TellUsFormService {
@@ -42,7 +43,7 @@ export class TellUsFormService {
         message: 'Successfully submitted',
       };
     } catch (error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: error });
     }
   }
 

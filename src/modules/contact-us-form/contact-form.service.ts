@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ContactForm } from './contactForm.entity';
 import { Repository } from 'typeorm';
@@ -6,6 +6,7 @@ import { MailerConfigType, MAILER_CONFIG_KEY } from 'src/common/config/mailer.co
 import { MailerService } from 'src/common/modules/mailer/mailer.service';
 import { ContactFormDto } from './dto/contactForm.dto';
 import { ContactStatusMessages } from './dto/contactForm.constant';
+import { makeError } from 'src/common/utils/make-error';
 
 @Injectable()
 export class ContactFormService {
@@ -36,7 +37,7 @@ export class ContactFormService {
         message: ContactStatusMessages.CREATE_REQUEST_SUCCESS,
       };
     } catch (error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      throw makeError(400, { message: error });
     }
   }
 }

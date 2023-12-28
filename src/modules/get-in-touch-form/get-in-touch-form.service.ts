@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { GetInTouchForm } from './get-in-touch-form.entity';
 import { MAILER_CONFIG_KEY, MailerConfigType } from 'src/common/config/mailer.config';
 import { MailerService } from 'src/common/modules/mailer/mailer.service';
+import { makeError } from 'src/common/utils/make-error';
 
 @Injectable()
 export class GetInTouchFormService {
@@ -35,7 +36,7 @@ export class GetInTouchFormService {
         message: GetInTouchFormStatusMessages.CREATE_REQUEST_SUCCESS,
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST, { cause: new Error(error) });
+      throw makeError(400, { message: error.message });
     }
   }
 }
