@@ -74,6 +74,7 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     return {
       accessToken: await this.jwtService.signAsync(payload),
+      refreshToken: await this.generateTokens({ userId: String(user.id) }).refreshToken,
     };
   }
   async recoveryPassword(data: string) {
